@@ -1,0 +1,84 @@
+import os
+import json
+
+from langchain_groq import ChatGroq
+from langchain_core.messages import SystemMessage
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import MessagesState
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_core.messages import ToolMessage
+
+from tools.research_news import research
+from agent.prompt_management.prompt_research import RESEARCH_SYSTEM_PROMPT
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME")
+# Khai báo LLM và bind tool
+llm = ChatGroq(
+    model = MODEL_NAME,
+    api_key = GROQ_API_KEY,
+    model_kwargs={"tool_choice": "auto"}
+)
+llm_with_tools = llm.bind_tools([research])
+
+def call_llm(state: MessagesState):
+    """Node LLM sinh output hoặc lệnh gọi tool."""
+    msg = llm_with_tools.invoke(state["messages"])
+    return {"messages": [msg]}
+
+# Xây đồ thị agent
+graph = StateGraph(MessagesState)
+graph.add_node("llm", call_llm)
+graph.add_node("tools", ToolNode([research]))
+
+# If need to call tool, go to tools node
+graph.add_conditional_edges("llm", tools_condition)
+graph.add_edge("tools", "llm")
+graph.set_entry_point("llm")
+graph.add_edge("llm", END)
+
+# Compile
+app = graph.compile()
+
+def run_research(query: str, time_range: str | None = None):
+    """Hàm tiện ích để gọi agent."""
+    user_msg = f"Query: {query}"
+    if time_range:
+        user_msg += f"\nTime range: {time_range}"
+    
+    result = app.invoke(
+        {
+            "messages": [
+                SystemMessage(content=RESEARCH_SYSTEM_PROMPT),
+                ("user", user_msg),
+            ]
+        }
+    )
+    
+    tool_messages = [
+        msg for msg in result["messages"]
+        if msg.__class__.__name__ == "ToolMessage"
+    ]
+    final_message = result["messages"][-1]
+    
+    # Parse URLs từ tool results
+    urls = []
+    for tool_msg in tool_messages:
+        try:
+            data = json.loads(tool_msg.content)
+            urls.extend([item.get("url") for item in data if item.get("url")])
+        except Exception as e:
+            print(f"Parse error: {e}")
+    
+    return {
+        "answer": final_message.content,
+        "sources": urls
+    }
+
+if __name__ == "__main__":
+    result = run_research("giá vàng những ngày gần đây")
+    print(result)
