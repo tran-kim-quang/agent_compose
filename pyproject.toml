@@ -1,0 +1,26 @@
+[project]
+name = "agent-compose"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "tran kim quang",email = "trankimquang1603@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "langgraph (>=1.0.5,<2.0.0)",
+    "langchain (>=1.2.0,<2.0.0)",
+    "langchain-core (>=1.2.5,<2.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "tavily (>=1.1.0,<2.0.0)",
+    "langchain-groq (>=1.1.1,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry]
+packages = [{ include = "agent", from = "src" }]
