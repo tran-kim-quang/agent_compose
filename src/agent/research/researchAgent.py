@@ -17,7 +17,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME")
-# Khai báo LLM và bind tool
+# Bind Tool
 llm = ChatGroq(
     model=MODEL_NAME,
     api_key=GROQ_API_KEY,
@@ -27,12 +27,12 @@ llm_with_tools = llm.bind_tools([research])
 
 
 def call_llm(state: MessagesState):
-    """Node LLM sinh output hoặc lệnh gọi tool."""
+    """Node LLM"""
     msg = llm_with_tools.invoke(state["messages"])
     return {"messages": [msg]}
 
 
-# Xây đồ thị agent
+# Buld Graph
 graph = StateGraph(MessagesState)
 graph.add_node("llm", call_llm)
 graph.add_node("tools", ToolNode([research]))
@@ -62,9 +62,10 @@ def run_research(query: str, time_range: str | None = None):
         },
     )
 
-    tool_messages = [
-        msg for msg in result["messages"] if isinstance(msg, ToolMessage)
-    ]
+    tool_messages = []
+    for msg in result["messages"]:
+        if isinstance(msg, ToolMessage):
+            tool_messages.append(msg)
     final_message = result["messages"][-1]
 
     # Parse URLs
