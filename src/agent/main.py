@@ -1,4 +1,4 @@
-from research.researchAgent import run_research
+from agent.research.logic import run_research
 
 test_query = "Biến động của mã chứng khoán ngành ngân hàng trong tuần qua"
 result = run_research(test_query)

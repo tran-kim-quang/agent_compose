@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from agent.analyze_context.analyzeAgent import run_analyze
-from agent.research.researchAgent import run_research
+from agent.analyze_context.logic import run_analyze
+from agent.research.logic import run_research
 
 
 def test_full_pipeline():
